@@ -1,0 +1,2 @@
+4/22/24 21:45: Implemented pixelated line drawing(Bressenahm's) utilized line drawing to render a ship and an asteroid
+4/23/24 19:23: Implemented bullets, collisions, player input, and game logic

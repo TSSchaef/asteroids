@@ -1,0 +1,66 @@
+**This file contains trivial information about this program**
+
+One of the biggest headaches with this project is that, by using 
+ncurses for "rendering" each "pixel" is character shaped. So 
+our "pixels" are rectangular rather than square. This means circular
+asteroids appeared oblong, and as you rotate your ship it would appear
+starkly different if horizontal rather than vertical. 
+
+My solution to this was to stretch everything in the X direction by a
+factor of 1.6, while not perfect this gets us quite close. This
+stretching creeps throughout the program, asteroids are technically
+oblong rather than circular. (actually octagons but more on that later)
+Your ship is technically longer when horizontal than vertical, in order
+to visually render to look similar. If you would like to undo this
+stretching the variable is called X_FACTOR in src/spaceObject.h
+(Changing it to 1 will undo all stretching).
+
+One of my cleaner (?) coding decisions I decided to gerneralize graphics
+for this program. The vectorRendering is quite barebones, but the most
+important function is the line drawing function to draw a pixelated
+line between two points. This function is then utilized in drawWireFrame
+(asteroids.cpp) to create simple outlines from a frame of points of any
+size, and rotate the frame if necessary (technically rotate the points
+then draw the frame). This wire frame is used to draw both the ship 
+and the asteroids. If you wish to change the appearance of the ship 
+its frame is constructed in startGame (asteroids.cpp) and the 
+appearance of an asteroid is constructed in asteroid() (spaceObjects.h).
+As of writing, asteroids use a frame of 8 points making them technically 
+octagons.
+
+Collisions are all handled as points interacting with the circular
+asteroids (actually oblong). I simply check the distance of the point
+from the center of the asteroid compared to the radius (size) of the 
+asteroid (stretched in the X-direction). If the point lies inside the
+asteroid then a collision occurs. Yes, even the ship is represented as
+as point (this gives the player a slight advantage of a margin of error).
+Also the asteroids are given a slight bit of randomness to their shape 
+(to make them more asteroid-y looking) but for collision detection a
+circle (stretched in the x direction) about their center is used. This
+can cause it to appear like a collision is wrong occasionally (more 
+noticable on lower "resolutions"). Also because the hit-box of the 
+asteroid is just represented as a radius around its center, as the 
+asteroid crosses an edge of the screen it can only be hit on the side
+its center is on.
+
+Game loop, the game updates use delta time to keep consistency, however the 
+game loop does not have any delays and is allowed to run as fast as possible.
+This means on faster hardware the gameplay might be quite different. Also
+if the screen is larger/resolution smaller there will be more open space in
+the game.
+
+The spin kinda ... sucks? Yeah, I spent way too much time trying to get
+this to be clean. If the spin value is low the ship turns much too slowly 
+to be useful, if it's higher the ship turns choppily and is almost impossible
+to aim. 
+
+Also not sure why, but the best solution I could find to this spinning
+issue is running the game in Valgrind. My best guess is that Valgrind is
+buffering the input somehow. Whatever it is, it makes the game far smoother
+and run faster.
+
+I know that my stream of bullets is unfaithful to the original game, but
+with how janky player movement is in the game I think it balances well enough.
+
+Useful values that can be adjusted are primarily in asteroids.cpp. These
+values include player spin speed, player acceleration, bullet speed, etc.

@@ -1,0 +1,19 @@
+This program implements a simple asteroids game. Use the a and d keys to spin
+your ship. The w key to accelerate, and the space key to shoot a bullet. You
+can use 'Q' to quit the game at any time, the game will also end if you are
+struck by an asteroid.
+
+The user input is somewhat buggy with curses (especially with multiple keys
+being pressed at once) it works best within Valgrind for some reason. So, 
+I recommend you run the game there. It works without, but occasionally
+keystrokes don't register or register late.
+
+		**** IMPORTANT NOTE *****
+For the rendering to work (well) you should make your terminal 
+as large as possible (fullscreen) and your font quite small (around 3-4). The 
+game will check the "resolution" of your terminal and not begin
+if it is too low*. The cutoff is the terminal must be at least 130 characters
+wide and 40 characters tall. DO NOT RESIZE TERMINAL AFTER GAME HAS STARTED!
+
+*If the terminal "resolution" is lower than this the game is somwhat
+unplayable due to asteroids often spawning on the ship.
