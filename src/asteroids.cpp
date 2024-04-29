@@ -1,15 +1,24 @@
-#include <vector>
 #include <cmath>
-#include <chrono>
+#include <vector>
 #include <cstring>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_timer.h>
 
 #include "spaceObject.h"
-#include "vectorRendering.h"
 
-#define X_FACTOR 1.6
+#define FPS 60
+#define WIDTH 1000
+#define HEIGHT 1000
 #define SHIP_SPIN 0.15
 #define SHIP_ACCL 0.08
 #define BULLET_SPEED 1.5
+
+#define SHIP 1
+#define ASTEROID 2
+#define BULLET 3
+
+SDL_Window *window;
+SDL_Renderer *renderer;
 
 std::vector<asteroid *> asteroids;
 std::vector<spaceObject *> bullets;
@@ -18,6 +27,7 @@ spaceObject *ship;
 point_t shipFrame[3];
 int numSpawnAsteroids = 2;
 
+bool running = false;
 int centerX, centerY;
 
 void placeAsteroids(){
@@ -38,6 +48,10 @@ void endGame(){
 	for(; bi != bullets.end(); bi++){
 		delete *bi;
 	}	
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    running = false;
 }
 
 void drawWireFrame(int x, int y, point_t frame[], int frameSize, float angle, int color){
@@ -45,14 +59,14 @@ void drawWireFrame(int x, int y, point_t frame[], int frameSize, float angle, in
 	
 	int i;
 	for(i = 0; i < frameSize; i++){
-		rotatedFrame[i].x = X_FACTOR * (frame[i].x * cos(angle) - frame[i].y * sin(angle));
+		rotatedFrame[i].x = (frame[i].x * cos(angle) - frame[i].y * sin(angle));
 		rotatedFrame[i].y = frame[i].x * sin(angle) + frame[i].y * cos(angle);
 	}
 	for(i = 0; i < frameSize - 1; i++){
-		drawLine(x + rotatedFrame[i].x, y + rotatedFrame[i].y, x + rotatedFrame[i + 1].x, y + rotatedFrame[i + 1].y, color);
+		SDL_RenderDrawLine(renderer, x + rotatedFrame[i].x, y + rotatedFrame[i].y, x + rotatedFrame[i + 1].x, y + rotatedFrame[i + 1].y);
 	}
 
-	drawLine( x + rotatedFrame[0].x, y + rotatedFrame[0].y, x + rotatedFrame[frameSize - 1].x, y + rotatedFrame[frameSize - 1].y, color);
+	SDL_RenderDrawLine(renderer, x + rotatedFrame[0].x, y + rotatedFrame[0].y, x + rotatedFrame[frameSize - 1].x, y + rotatedFrame[frameSize - 1].y);
 }
 
 void drawShip(){
@@ -71,47 +85,64 @@ void drawBullets(){
 	if(bullets.empty()) return;
 	std::vector<spaceObject *>::iterator si;
 	for(si = bullets.begin(); si != bullets.end(); si++){
-		draw((*si)->x, (*si)->y, BULLET);
-	}
+        SDL_RenderDrawPoint(renderer, (*si)->x, (*si)->y);
+    }
 }
 
-int updateGame(uint64_t delta){
-	char ch[10];
-	getnstr(ch, 10);
-	if(strchr(ch, 'Q') != NULL){
-		return 1;
-	}
+void updateGame(){
+    SDL_Event event;
+
+    while(SDL_PollEvent(&event)){
+        switch (event.type){
+            case SDL_QUIT:
+                running = false;
+                break;
+
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.scancode){
+                    case SDL_SCANCODE_Q:
+                        running = false;
+                        break;
+
+                    case SDL_SCANCODE_W:
+                    case SDL_SCANCODE_UP:
+                        ship->dx += SHIP_ACCL * sin(ship->angle);
+                        ship->dy -= SHIP_ACCL * cos(ship->angle);
+                        break;
+
+                    case SDL_SCANCODE_A:
+                    case SDL_SCANCODE_LEFT: 
+		                ship->angle -= SHIP_SPIN;
+                        break;
+
+                    case SDL_SCANCODE_D:
+                    case SDL_SCANCODE_RIGHT:
+		                ship->angle += SHIP_SPIN;
+                        break;
+
+                    case SDL_SCANCODE_SPACE:
+		                bullets.push_back(new spaceObject(ship->x, ship->y, BULLET_SPEED * sin(ship->angle), -1 * BULLET_SPEED * cos(ship->angle), 0));
+                        break;
+
+                    default:
+                        break;
+                }
+        }
+    }
 	
-	if(strchr(ch, 'a') != NULL){
-		ship->angle -= SHIP_SPIN * delta * delta;
-	}	
+	ship->x += ship->dx;
+	ship->y += ship->dy;
+
+	if(ship->x > WIDTH) ship->x -= WIDTH;
+	if(ship->x < 0) ship->x += WIDTH;
+	if(ship->y > HEIGHT) ship->y -= HEIGHT;
+	if(ship->y < 0) ship->y += HEIGHT;
 	
-	if(strchr(ch, 'd') != NULL){
-		ship->angle += SHIP_SPIN * delta * delta;
-	}	
-
-	if(strchr(ch, 'w') != NULL){
-		ship->dx += SHIP_ACCL * sin(ship->angle) * delta / 10;
-		ship->dy -= SHIP_ACCL * cos(ship->angle) * delta / 10;
-	}	
-
-	ship->x += ship->dx * delta;
-	ship->y += ship->dy * delta;
-
-	if(ship->x > COLS) ship->x -= COLS;
-	if(ship->x < 0) ship->x += COLS;
-	if(ship->y > LINES) ship->y -= LINES;
-	if(ship->y < 0) ship->y += LINES;
-	
-	if(strchr(ch, ' ') != NULL){
-		bullets.push_back(new spaceObject(ship->x, ship->y, BULLET_SPEED * sin(ship->angle), -1 * BULLET_SPEED * cos(ship->angle), 0));
-	}
-
 	std::vector<spaceObject *>::iterator si;
 	for(si = bullets.begin(); si != bullets.end(); si++){
-		(*si)->x += (*si)->dx * delta / 10;
-		(*si)->y += (*si)->dy * delta / 10;
-		if((*si)->x > COLS || (*si)->x < 0 || (*si)->y > LINES || (*si)->y < 0){
+		(*si)->x += (*si)->dx;
+		(*si)->y += (*si)->dy;
+		if((*si)->x > WIDTH || (*si)->x < 0 || (*si)->y > HEIGHT || (*si)->y < 0){
 			//remove bullet from vector
 			delete (*si);
 			bullets.erase(si);
@@ -123,20 +154,20 @@ int updateGame(uint64_t delta){
 		std::vector<asteroid *>::iterator ai;
 		std::vector<asteroid *> tempAst;
 		for(ai = asteroids.begin(); ai != asteroids.end(); ai++){
-			(*ai)->x += (*ai)->dx * delta / 10;
-			(*ai)->y += (*ai)->dy * delta / 10;
-			if((*ai)->x > COLS) (*ai)->x -= COLS;
-			if((*ai)->x < 0) (*ai)->x += COLS;
-			if((*ai)->y > LINES) (*ai)->y -= LINES;
-			if((*ai)->y < 0) (*ai)->y += LINES;
+			(*ai)->x += (*ai)->dx;
+			(*ai)->y += (*ai)->dy;
+			if((*ai)->x > WIDTH) (*ai)->x -= WIDTH;
+			if((*ai)->x < 0) (*ai)->x += WIDTH;
+			if((*ai)->y > HEIGHT) (*ai)->y -= HEIGHT;
+			if((*ai)->y < 0) (*ai)->y += HEIGHT;
 			
 			//collided with player
-			if((*ai)->size * (*ai)->size >= (X_FACTOR * X_FACTOR * (ship->x - (*ai)->x) * (ship->x - (*ai)->x)) + ((ship->y - (*ai)->y) * (ship->y - (*ai)->y))){
-				return 2;
+			if((*ai)->size * (*ai)->size >= ((ship->x - (*ai)->x) * (ship->x - (*ai)->x)) + ((ship->y - (*ai)->y) * (ship->y - (*ai)->y))){
+                running = false;
 			}
 
 			for(si = bullets.begin(); si != bullets.end(); si++){
-				if((*ai)->size * (*ai)->size >= (X_FACTOR * X_FACTOR * ((*si)->x - (*ai)->x) * ((*si)->x - (*ai)->x)) + (((*si)->y - (*ai)->y) * ((*si)->y - (*ai)->y))){
+				if((*ai)->size * (*ai)->size >= (((*si)->x - (*ai)->x) * ((*si)->x - (*ai)->x)) + (((*si)->y - (*ai)->y) * ((*si)->y - (*ai)->y))){
 					//bullet hit asteroid
 					delete (*si);
 					bullets.erase(si);
@@ -159,41 +190,44 @@ int updateGame(uint64_t delta){
 	}else{
 		placeAsteroids();		
 	}
-	return 0;
 }
 
 void render(){
-	erase();
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	drawShip();
 	drawAsteroids();
 	drawBullets();
-	refresh();
-}
-
-uint64_t getCurrTime(){
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    SDL_RenderPresent(renderer);
 }
 
 void gameLoop(){
-	uint64_t previous = getCurrTime();
-	
-	while(true){
-		uint64_t current = getCurrTime();
-		uint64_t elapsed = current - previous;
-		previous = current;
+	uint64_t frameStart;  
+    uint64_t frameTime;
+    uint64_t frameDelay = 1000 / FPS;
 
-		if(updateGame(elapsed)) break;
-
+	while(running){
+        frameStart = SDL_GetTicks64();
+        
+        updateGame();
 		render();
+
+        frameTime = SDL_GetTicks64() - frameStart;
+
+        if(frameDelay > frameTime) SDL_Delay(frameDelay - frameTime);
 	}	
 }
 
-void startGame(){
-	//COLS and LINES are set by ncurses on init
-	//they are also altered on screen resizing
-	srand(getCurrTime());
-	centerX = COLS / 2;
-	centerY = LINES / 2;
+int startGame(){
+
+    if(SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+       return -1;
+    }
+
+    window = SDL_CreateWindow("Asteroids", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, 0);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
 	ship = new spaceObject(centerX, centerY, 0, 0, 0);
 	placeAsteroids();
 	shipFrame[0].x = 0;
@@ -202,18 +236,19 @@ void startGame(){
 	shipFrame[1].y = 2;
 	shipFrame[2].x = -2;
 	shipFrame[2].y = 2;
+    running = true;
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    return 0;
 }
 
 int main(int argc, char * argv[]){
-	if(!startScreen()){
-		printf("Screen resolution is too low, see README\n");       
-		return 0;
-	}
-	startGame();
+	if(startGame() != 0){
+       printf("Error initializing SDL: %s", SDL_GetError()); 
+       return -1;
+    }
 	
 	gameLoop();
 
 	endGame();
-	endScreen();
 	return 0;
 }

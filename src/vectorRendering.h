@@ -1,7 +1,7 @@
 #ifndef VECTOR_RENDERING_H
 #define VECTOR_RENDERING_H
 
-#include <ncurses.h>
+#include <SDL2/SDL.h>
 
 #define ASTEROID 1
 #define BULLET 2

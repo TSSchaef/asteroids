@@ -1,13 +1,10 @@
 #Makefile
 
-asteroids: asteroids.o vectorRendering.o
-	g++ asteroids.o vectorRendering.o -o asteroids -lncurses
+asteroids: asteroids.o 
+	g++ asteroids.o  -o asteroids -lSDL2
 
-asteroids.o: src/asteroids.cpp src/spaceObject.h src/vectorRendering.h
+asteroids.o: src/asteroids.cpp src/spaceObject.h 
 	g++ -Wall -Werror -g src/asteroids.cpp -c
-
-vectorRendering.o: src/vectorRendering.h src/vectorRendering.cpp
-	g++ -Wall -Werror -g src/vectorRendering.cpp -c
 
 .PHONY: clean
 
