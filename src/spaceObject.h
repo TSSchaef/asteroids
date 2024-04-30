@@ -1,6 +1,7 @@
 #ifndef SPACE_OBJECT_H
 #define SPACE_OBJECT_H
 
+#define ASTEROID_RESOLUTION 16
 
 typedef struct point{
 	int x, y;
@@ -22,14 +23,14 @@ public:
 class asteroid : public spaceObject{
 public:
 	int size;
-	point_t frame[8];
+	point_t frame[ASTEROID_RESOLUTION];
 	asteroid(float x, float y, float dx, float dy, float angle, int size) : spaceObject(x, y, dx, dy, angle){
 		this->size = size;
 
 		int i;
-		for(i = 0; i < 8; i++){
-			frame[i].x = size * cos(i * (3.14159 / 4)) + (rand() % 3 - 1);
-			frame[i].y = size * sin(i * (3.14159 / 4)) + (rand() % 3 - 1);
+		for(i = 0; i < ASTEROID_RESOLUTION; i++){
+			frame[i].x = size * cos(i * (3.14159 / (ASTEROID_RESOLUTION / 2))) + (rand() % 3 - 1);
+			frame[i].y = size * sin(i * (3.14159 / (ASTEROID_RESOLUTION / 2))) + (rand() % 3 - 1);
 		}
 	}
 	~asteroid(){}

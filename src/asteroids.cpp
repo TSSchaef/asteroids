@@ -9,13 +9,10 @@
 #define FPS 60
 #define WIDTH 1000
 #define HEIGHT 1000
-#define SHIP_SPIN 0.15
-#define SHIP_ACCL 0.08
-#define BULLET_SPEED 1.5
-
-#define SHIP 1
-#define ASTEROID 2
-#define BULLET 3
+#define SHIP_SPIN 8.0 / FPS 
+#define SHIP_ACCL 3.0 / FPS 
+#define BULLET_SPEED 240.0 / FPS 
+#define BULLET_DELAY 250
 
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -26,14 +23,16 @@ spaceObject *ship;
 
 point_t shipFrame[3];
 int numSpawnAsteroids = 2;
+int score = 0;
+
+bool keysPressed[SDL_NUM_SCANCODES];
 
 bool running = false;
-int centerX, centerY;
 
 void placeAsteroids(){
 	int i;
 	for(i = 0; i < numSpawnAsteroids; i++){
-		asteroids.push_back(new asteroid(ship->x + (-1 * (rand() % 2 + 1)) * ((rand() % 12) + 30), ship->y + (-1 * (rand() % 2 + 1)) * (17), (-1 * (rand() % 2 + 1)) * 0.1, (-1 * (rand() % 2 + 1)) * 0.05, 0.05, 16));
+		asteroids.push_back(new asteroid(ship->x + (-1 * (rand() % 2 + 1)) * ((rand() % 12) + 30), ship->y + (-1 * (rand() % 2 + 1)) * (17), (-1 * (rand() % 2 + 1)) * 0.2, (-1 * (rand() % 2 + 1)) * 0.2, 0.05, 32));
 	}
 	numSpawnAsteroids++;
 }
@@ -54,7 +53,7 @@ void endGame(){
     running = false;
 }
 
-void drawWireFrame(int x, int y, point_t frame[], int frameSize, float angle, int color){
+void drawWireFrame(int x, int y, point_t frame[], int frameSize, float angle){
 	point_t rotatedFrame[frameSize];
 	
 	int i;
@@ -70,14 +69,14 @@ void drawWireFrame(int x, int y, point_t frame[], int frameSize, float angle, in
 }
 
 void drawShip(){
-	drawWireFrame(ship->x, ship->y, shipFrame, 3, ship->angle, SHIP);
+	drawWireFrame(ship->x, ship->y, shipFrame, 3, ship->angle);
 }
 
 void drawAsteroids(){
 	if(asteroids.empty()) return;
 	std::vector<asteroid *>::iterator ai;
 	for(ai = asteroids.begin(); ai != asteroids.end(); ai++){
-		drawWireFrame((*ai)->x, (*ai)->y, (*ai)->frame, 8, (*ai)->angle, ASTEROID);
+		drawWireFrame((*ai)->x, (*ai)->y, (*ai)->frame, ASTEROID_RESOLUTION, (*ai)->angle);
 	}
 }
 
@@ -89,7 +88,7 @@ void drawBullets(){
     }
 }
 
-void updateGame(){
+void userInput(){
     SDL_Event event;
 
     while(SDL_PollEvent(&event)){
@@ -99,37 +98,40 @@ void updateGame(){
                 break;
 
             case SDL_KEYDOWN:
-                switch (event.key.keysym.scancode){
-                    case SDL_SCANCODE_Q:
+                if(event.key.keysym.scancode == SDL_SCANCODE_Q){
                         running = false;
-                        break;
-
-                    case SDL_SCANCODE_W:
-                    case SDL_SCANCODE_UP:
-                        ship->dx += SHIP_ACCL * sin(ship->angle);
-                        ship->dy -= SHIP_ACCL * cos(ship->angle);
-                        break;
-
-                    case SDL_SCANCODE_A:
-                    case SDL_SCANCODE_LEFT: 
-		                ship->angle -= SHIP_SPIN;
-                        break;
-
-                    case SDL_SCANCODE_D:
-                    case SDL_SCANCODE_RIGHT:
-		                ship->angle += SHIP_SPIN;
-                        break;
-
-                    case SDL_SCANCODE_SPACE:
-		                bullets.push_back(new spaceObject(ship->x, ship->y, BULLET_SPEED * sin(ship->angle), -1 * BULLET_SPEED * cos(ship->angle), 0));
-                        break;
-
-                    default:
-                        break;
                 }
+                keysPressed[event.key.keysym.scancode] = true;
+            break;
+
+            case SDL_KEYUP:
+                keysPressed[event.key.keysym.scancode] = false;
+            break;
         }
     }
+}
+
+void updateGame(){
+    static uint64_t lastBulletFired;
 	
+    if(keysPressed[SDL_SCANCODE_W] || keysPressed[SDL_SCANCODE_UP]){
+        ship->dx += SHIP_ACCL * sin(ship->angle);
+        ship->dy -= SHIP_ACCL * cos(ship->angle);
+    }
+
+    if(keysPressed[SDL_SCANCODE_A] || keysPressed[SDL_SCANCODE_LEFT]){
+        ship->angle -= SHIP_SPIN;
+    }
+
+    if(keysPressed[SDL_SCANCODE_D] || keysPressed[SDL_SCANCODE_RIGHT]){
+        ship->angle += SHIP_SPIN;
+    }
+
+    if(keysPressed[SDL_SCANCODE_SPACE] && SDL_GetTicks64() > lastBulletFired + BULLET_DELAY){
+        bullets.push_back(new spaceObject(ship->x, ship->y, BULLET_SPEED * sin(ship->angle), -1 * BULLET_SPEED * cos(ship->angle), 0));
+        lastBulletFired = SDL_GetTicks64();
+    }
+
 	ship->x += ship->dx;
 	ship->y += ship->dy;
 
@@ -172,7 +174,9 @@ void updateGame(){
 					delete (*si);
 					bullets.erase(si);
 					si--;
-					if((*ai)->size > 4){
+
+                    score += (*ai)->size * 6.25;
+					if((*ai)->size > 8){
 						tempAst.push_back(new asteroid((*ai)->x, (*ai)->y, (*ai)->dx + static_cast<double> (rand() / static_cast<double> (RAND_MAX)) - 0.5, (*ai)->dy + static_cast<double> (rand() / static_cast<double> (RAND_MAX)) - 0.5, -0.05, (*ai)->size / 2));
 						tempAst.push_back(new asteroid((*ai)->x, (*ai)->y, (*ai)->dx + static_cast<double> (rand() / static_cast<double> (RAND_MAX)) - 0.5, (*ai)->dy + static_cast<double> (rand() / static_cast<double> (RAND_MAX)) - 0.5, 0.1, (*ai)->size / 2));
 					}
@@ -188,6 +192,7 @@ void updateGame(){
 			asteroids.push_back(*ai);
 		}
 	}else{
+        score += 250 * numSpawnAsteroids;
 		placeAsteroids();		
 	}
 }
@@ -197,7 +202,9 @@ void render(){
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	drawShip();
+    SDL_SetRenderDrawColor(renderer, 101, 67, 33, 255);
 	drawAsteroids();
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 	drawBullets();
     SDL_RenderPresent(renderer);
 }
@@ -209,7 +216,8 @@ void gameLoop(){
 
 	while(running){
         frameStart = SDL_GetTicks64();
-        
+       
+        userInput();
         updateGame();
 		render();
 
@@ -228,14 +236,14 @@ int startGame(){
     window = SDL_CreateWindow("Asteroids", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, 0);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-	ship = new spaceObject(centerX, centerY, 0, 0, 0);
+	ship = new spaceObject(WIDTH / 2, HEIGHT / 2, 0, 0, 0);
 	placeAsteroids();
 	shipFrame[0].x = 0;
-	shipFrame[0].y = -5;
-	shipFrame[1].x = 2;
-	shipFrame[1].y = 2;
-	shipFrame[2].x = -2;
-	shipFrame[2].y = 2;
+	shipFrame[0].y = -10;
+	shipFrame[1].x = 4;
+	shipFrame[1].y = 4;
+	shipFrame[2].x = -4;
+	shipFrame[2].y = 4;
     running = true;
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     return 0;
@@ -250,5 +258,6 @@ int main(int argc, char * argv[]){
 	gameLoop();
 
 	endGame();
+    printf("Score: %d", score);
 	return 0;
 }
