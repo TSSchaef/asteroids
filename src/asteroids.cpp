@@ -1,8 +1,10 @@
 #include <cmath>
 #include <vector>
 #include <cstring>
+#include <string>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
+#include <SDL2/SDL_ttf.h>
 
 #include "spaceObject.h"
 
@@ -29,6 +31,9 @@ bool keysPressed[SDL_NUM_SCANCODES];
 
 bool running = false;
 
+SDL_Color White = {255, 255, 255, 255};
+TTF_Font* Hyperspace; 
+
 void placeAsteroids(){
 	int i;
 	for(i = 0; i < numSpawnAsteroids; i++){
@@ -46,7 +51,11 @@ void endGame(){
 	std::vector<spaceObject *>::iterator bi = bullets.begin();
 	for(; bi != bullets.end(); bi++){
 		delete *bi;
-	}	
+	}
+    
+    TTF_CloseFont(Hyperspace);
+    TTF_Quit();
+
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -86,6 +95,22 @@ void drawBullets(){
 	for(si = bullets.begin(); si != bullets.end(); si++){
         SDL_RenderDrawPoint(renderer, (*si)->x, (*si)->y);
     }
+}
+
+void showScore(){
+    std::string msg = "Score: " + std::to_string(score); 
+    SDL_Surface *surfaceMessage =
+        TTF_RenderText_Solid(Hyperspace, msg.c_str(), White);
+    SDL_Texture *Message = 
+        SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+    int w, h;
+    SDL_QueryTexture(Message, NULL, NULL, &w, &h);
+    SDL_Rect rect = {0, 0, w, h};
+
+    SDL_RenderCopy(renderer, Message, NULL, &rect);
+
+    SDL_FreeSurface(surfaceMessage);
+    SDL_DestroyTexture(Message);
 }
 
 void userInput(){
@@ -128,7 +153,7 @@ void updateGame(){
     }
 
     if(keysPressed[SDL_SCANCODE_SPACE] && SDL_GetTicks64() > lastBulletFired + BULLET_DELAY){
-        bullets.push_back(new spaceObject(ship->x, ship->y, BULLET_SPEED * sin(ship->angle), -1 * BULLET_SPEED * cos(ship->angle), 0));
+        bullets.push_back(new spaceObject(ship->x, ship->y, ship->dx + BULLET_SPEED * sin(ship->angle), ship->dy + -1 * BULLET_SPEED * cos(ship->angle), 0));
         lastBulletFired = SDL_GetTicks64();
     }
 
@@ -202,6 +227,7 @@ void render(){
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	drawShip();
+    showScore();
     SDL_SetRenderDrawColor(renderer, 101, 67, 33, 255);
 	drawAsteroids();
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
@@ -236,6 +262,9 @@ int startGame(){
     window = SDL_CreateWindow("Asteroids", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, 0);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
+    TTF_Init();
+    Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 16);
+
 	ship = new spaceObject(WIDTH / 2, HEIGHT / 2, 0, 0, 0);
 	placeAsteroids();
 	shipFrame[0].x = 0;
@@ -258,6 +287,5 @@ int main(int argc, char * argv[]){
 	gameLoop();
 
 	endGame();
-    printf("Score: %d", score);
 	return 0;
 }

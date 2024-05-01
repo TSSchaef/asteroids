@@ -1,7 +1,7 @@
 #Makefile
 
 asteroids: asteroids.o 
-	g++ asteroids.o  -o asteroids -lSDL2
+	g++ asteroids.o  -o asteroids -lSDL2 -lSDL2_ttf
 
 asteroids.o: src/asteroids.cpp src/spaceObject.h 
 	g++ -Wall -Werror -g src/asteroids.cpp -c
