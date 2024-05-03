@@ -32,7 +32,10 @@ bool keysPressed[SDL_NUM_SCANCODES];
 bool running = false;
 
 SDL_Color White = {255, 255, 255, 255};
+
 TTF_Font* Hyperspace; 
+TTF_Font* HyperspaceScore; 
+TTF_Font* HyperspaceTitle; 
 
 void placeAsteroids(){
 	int i;
@@ -52,7 +55,8 @@ void endGame(){
 	for(; bi != bullets.end(); bi++){
 		delete *bi;
 	}
-    
+    asteroids.clear();
+    bullets.clear();
     running = false;
 }
 
@@ -94,7 +98,7 @@ void drawBullets(){
 void showScore(){
     std::string msg = "Score: " + std::to_string(score); 
     SDL_Surface *surfaceMessage =
-        TTF_RenderText_Solid(Hyperspace, msg.c_str(), White);
+        TTF_RenderText_Solid(HyperspaceScore, msg.c_str(), White);
     SDL_Texture *Message = 
         SDL_CreateTextureFromSurface(renderer, surfaceMessage);
     int w, h;
@@ -107,12 +111,13 @@ void showScore(){
     SDL_DestroyTexture(Message);
 }
 
-void userInput(){
+int userInput(){
     SDL_Event event;
 
     while(SDL_PollEvent(&event)){
         switch (event.type){
             case SDL_QUIT:
+                return 0;
                 running = false;
                 break;
 
@@ -128,6 +133,7 @@ void userInput(){
             break;
         }
     }
+    return 1;
 }
 
 void updateGame(){
@@ -256,6 +262,8 @@ void startGame(){
 	shipFrame[1].y = 4;
 	shipFrame[2].x = -4;
 	shipFrame[2].y = 4;
+    score = 0;
+    numSpawnAsteroids = 2;
     running = true;
 }
 
@@ -268,7 +276,9 @@ int startScreen(){
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     TTF_Init();
-    Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 16);
+    Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 24);
+    HyperspaceScore = TTF_OpenFont("src/Hyperspace.ttf", 16);
+    HyperspaceTitle = TTF_OpenFont("src/Hyperspace.ttf", 128);
     
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     return 0;
@@ -276,6 +286,7 @@ int startScreen(){
 
 void endScreen(){
     TTF_CloseFont(Hyperspace);
+    TTF_CloseFont(HyperspaceTitle);
     TTF_Quit();
 
     SDL_DestroyRenderer(renderer);
@@ -316,7 +327,9 @@ bool titleScreen(){
     while(true){
         frameStart = SDL_GetTicks64();
        
-        userInput();
+        if(!userInput()){
+            return false;
+        }
 
         if((keysPressed[SDL_SCANCODE_S] || keysPressed[SDL_SCANCODE_DOWN]) && !(keysPressed[SDL_SCANCODE_W] || keysPressed[SDL_SCANCODE_UP])){
            if(!justMoved && index < menuHeight) index++;
@@ -331,16 +344,6 @@ bool titleScreen(){
         if(keysPressed[SDL_SCANCODE_SPACE] || keysPressed[SDL_SCANCODE_RETURN]){
             switch(index){
                 case 0:
-                    SDL_FreeSurface(title);
-                    SDL_DestroyTexture(titleTxt);
-                    SDL_FreeSurface(play);
-                    SDL_DestroyTexture(playTxt);
-                    SDL_FreeSurface(options);
-                    SDL_DestroyTexture(optionsTxt);
-                    SDL_FreeSurface(help);
-                    SDL_DestroyTexture(helpTxt);
-                    SDL_FreeSurface(quit);
-                    SDL_DestroyTexture(quitTxt);
                     return true;
                 case 1:
         //            options();
@@ -353,12 +356,12 @@ bool titleScreen(){
             }
         }
 
-        if(index == 0){
-            title = TTF_RenderText_Solid(Hyperspace, "Asteroids", White);
-            titleTxt = SDL_CreateTextureFromSurface(renderer, title);
-            SDL_QueryTexture(titleTxt, NULL, NULL, &w, &h);
-            titleRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 50, w, h};
+        title = TTF_RenderText_Solid(HyperspaceTitle, "Asteroids", White);
+        titleTxt = SDL_CreateTextureFromSurface(renderer, title);
+        SDL_QueryTexture(titleTxt, NULL, NULL, &w, &h);
+        titleRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 125, w, h};
 
+        if(index == 0){
             play = TTF_RenderText_Solid(Hyperspace, "XX Play XX", White);
             playTxt = SDL_CreateTextureFromSurface(renderer, play);
             SDL_QueryTexture(playTxt, NULL, NULL, &w, &h);
@@ -367,23 +370,18 @@ bool titleScreen(){
             options = TTF_RenderText_Solid(Hyperspace, "Options", White);
             optionsTxt = SDL_CreateTextureFromSurface(renderer, options);
             SDL_QueryTexture(optionsTxt, NULL, NULL, &w, &h);
-            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + h + 5, w, h};
             
             help = TTF_RenderText_Solid(Hyperspace, "Help", White);
             helpTxt = SDL_CreateTextureFromSurface(renderer, help);
             SDL_QueryTexture(helpTxt, NULL, NULL, &w, &h);
-            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 2*(h + 5), w, h};
             
             quit = TTF_RenderText_Solid(Hyperspace, "Quit", White);
             quitTxt = SDL_CreateTextureFromSurface(renderer, quit);
             SDL_QueryTexture(quitTxt, NULL, NULL, &w, &h);
-            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 3*(h + 5), w, h};
         } else if (index == 1){
-            title = TTF_RenderText_Solid(Hyperspace, "Asteroids", White);
-            titleTxt = SDL_CreateTextureFromSurface(renderer, title);
-            SDL_QueryTexture(titleTxt, NULL, NULL, &w, &h);
-            titleRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 50, w, h};
-
             play = TTF_RenderText_Solid(Hyperspace, "Play", White);
             playTxt = SDL_CreateTextureFromSurface(renderer, play);
             SDL_QueryTexture(playTxt, NULL, NULL, &w, &h);
@@ -392,23 +390,18 @@ bool titleScreen(){
             options = TTF_RenderText_Solid(Hyperspace, "XX Options XX", White);
             optionsTxt = SDL_CreateTextureFromSurface(renderer, options);
             SDL_QueryTexture(optionsTxt, NULL, NULL, &w, &h);
-            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + h + 5, w, h};
             
             help = TTF_RenderText_Solid(Hyperspace, "Help", White);
             helpTxt = SDL_CreateTextureFromSurface(renderer, help);
             SDL_QueryTexture(helpTxt, NULL, NULL, &w, &h);
-            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 2*(h + 5), w, h};
             
             quit = TTF_RenderText_Solid(Hyperspace, "Quit", White);
             quitTxt = SDL_CreateTextureFromSurface(renderer, quit);
             SDL_QueryTexture(quitTxt, NULL, NULL, &w, &h);
-            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 3*(h + 5), w, h};
         } else if (index == 2){
-            title = TTF_RenderText_Solid(Hyperspace, "Asteroids", White);
-            titleTxt = SDL_CreateTextureFromSurface(renderer, title);
-            SDL_QueryTexture(titleTxt, NULL, NULL, &w, &h);
-            titleRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 50, w, h};
-
             play = TTF_RenderText_Solid(Hyperspace, "Play", White);
             playTxt = SDL_CreateTextureFromSurface(renderer, play);
             SDL_QueryTexture(playTxt, NULL, NULL, &w, &h);
@@ -417,23 +410,18 @@ bool titleScreen(){
             options = TTF_RenderText_Solid(Hyperspace, "Options", White);
             optionsTxt = SDL_CreateTextureFromSurface(renderer, options);
             SDL_QueryTexture(optionsTxt, NULL, NULL, &w, &h);
-            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + h + 5, w, h};
             
             help = TTF_RenderText_Solid(Hyperspace, "XX Help XX", White);
             helpTxt = SDL_CreateTextureFromSurface(renderer, help);
             SDL_QueryTexture(helpTxt, NULL, NULL, &w, &h);
-            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 2*(h + 5), w, h};
             
             quit = TTF_RenderText_Solid(Hyperspace, "Quit", White);
             quitTxt = SDL_CreateTextureFromSurface(renderer, quit);
             SDL_QueryTexture(quitTxt, NULL, NULL, &w, &h);
-            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 3*(h + 5), w, h};
         } else {
-            title = TTF_RenderText_Solid(Hyperspace, "Asteroids", White);
-            titleTxt = SDL_CreateTextureFromSurface(renderer, title);
-            SDL_QueryTexture(titleTxt, NULL, NULL, &w, &h);
-            titleRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 50, w, h};
-
             play = TTF_RenderText_Solid(Hyperspace, "Play", White);
             playTxt = SDL_CreateTextureFromSurface(renderer, play);
             SDL_QueryTexture(playTxt, NULL, NULL, &w, &h);
@@ -442,21 +430,23 @@ bool titleScreen(){
             options = TTF_RenderText_Solid(Hyperspace, "Options", White);
             optionsTxt = SDL_CreateTextureFromSurface(renderer, options);
             SDL_QueryTexture(optionsTxt, NULL, NULL, &w, &h);
-            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + h + 5, w, h};
             
             help = TTF_RenderText_Solid(Hyperspace, "Help", White);
             helpTxt = SDL_CreateTextureFromSurface(renderer, help);
             SDL_QueryTexture(helpTxt, NULL, NULL, &w, &h);
-            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 2*(h + 5), w, h};
             
             quit = TTF_RenderText_Solid(Hyperspace, "XX Quit XX", White);
             quitTxt = SDL_CreateTextureFromSurface(renderer, quit);
             SDL_QueryTexture(quitTxt, NULL, NULL, &w, &h);
-            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 3*(h + 5), w, h};
         }
 
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         SDL_RenderClear(renderer);
 
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderCopy(renderer, titleTxt, NULL, &titleRect);
         SDL_RenderCopy(renderer, playTxt, NULL, &playRect);
         SDL_RenderCopy(renderer, optionsTxt, NULL, &optionsRect);
@@ -464,6 +454,18 @@ bool titleScreen(){
         SDL_RenderCopy(renderer, quitTxt, NULL, &quitRect);
 
         SDL_RenderPresent(renderer);
+
+        SDL_FreeSurface(title);
+        SDL_DestroyTexture(titleTxt);
+        SDL_FreeSurface(play);
+        SDL_DestroyTexture(playTxt);
+        SDL_FreeSurface(options);
+        SDL_DestroyTexture(optionsTxt);
+        SDL_FreeSurface(help);
+        SDL_DestroyTexture(helpTxt);
+        SDL_FreeSurface(quit);
+        SDL_DestroyTexture(quitTxt);
+
         frameTime = SDL_GetTicks64() - frameStart;
 
         if(frameDelay > frameTime) SDL_Delay(frameDelay - frameTime);
