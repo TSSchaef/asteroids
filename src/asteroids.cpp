@@ -53,12 +53,6 @@ void endGame(){
 		delete *bi;
 	}
     
-    TTF_CloseFont(Hyperspace);
-    TTF_Quit();
-
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
     running = false;
 }
 
@@ -253,18 +247,7 @@ void gameLoop(){
 	}	
 }
 
-int startGame(){
-
-    if(SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-       return -1;
-    }
-
-    window = SDL_CreateWindow("Asteroids", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, 0);
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-
-    TTF_Init();
-    Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 16);
-
+void startGame(){
 	ship = new spaceObject(WIDTH / 2, HEIGHT / 2, 0, 0, 0);
 	placeAsteroids();
 	shipFrame[0].x = 0;
@@ -274,18 +257,232 @@ int startGame(){
 	shipFrame[2].x = -4;
 	shipFrame[2].y = 4;
     running = true;
+}
+
+int startScreen(){
+    if(SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+       return -1;
+    }
+
+    window = SDL_CreateWindow("Asteroids", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, 0);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    TTF_Init();
+    Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 16);
+    
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     return 0;
 }
 
+void endScreen(){
+    TTF_CloseFont(Hyperspace);
+    TTF_Quit();
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
+
+bool titleScreen(){
+	uint64_t frameStart;  
+    uint64_t frameTime;
+    uint64_t frameDelay = 1000 / FPS;
+
+    int index = 0;
+    bool justMoved = false;
+
+    int menuHeight = 4; //Play - Options - Help - Quit
+
+    SDL_Surface *title;
+    SDL_Surface *play;
+    SDL_Surface *options;
+    SDL_Surface *help;
+    SDL_Surface *quit;
+    
+    SDL_Texture *titleTxt;
+    SDL_Texture *playTxt;
+    SDL_Texture *optionsTxt;
+    SDL_Texture *helpTxt;
+    SDL_Texture *quitTxt;
+    
+    SDL_Rect playRect;
+    SDL_Rect titleRect;
+    SDL_Rect optionsRect;
+    SDL_Rect helpRect;
+    SDL_Rect quitRect;
+
+    int w, h;
+	
+    while(true){
+        frameStart = SDL_GetTicks64();
+       
+        userInput();
+
+        if((keysPressed[SDL_SCANCODE_S] || keysPressed[SDL_SCANCODE_DOWN]) && !(keysPressed[SDL_SCANCODE_W] || keysPressed[SDL_SCANCODE_UP])){
+           if(!justMoved && index < menuHeight) index++;
+           justMoved = true;
+        } else if(!(keysPressed[SDL_SCANCODE_S] || keysPressed[SDL_SCANCODE_DOWN]) && (keysPressed[SDL_SCANCODE_W] || keysPressed[SDL_SCANCODE_UP])){
+           if(!justMoved && index > 0) index--;
+            justMoved = true;
+        } else {
+            justMoved = false;
+        }
+
+        if(keysPressed[SDL_SCANCODE_SPACE] || keysPressed[SDL_SCANCODE_RETURN]){
+            switch(index){
+                case 0:
+                    SDL_FreeSurface(title);
+                    SDL_DestroyTexture(titleTxt);
+                    SDL_FreeSurface(play);
+                    SDL_DestroyTexture(playTxt);
+                    SDL_FreeSurface(options);
+                    SDL_DestroyTexture(optionsTxt);
+                    SDL_FreeSurface(help);
+                    SDL_DestroyTexture(helpTxt);
+                    SDL_FreeSurface(quit);
+                    SDL_DestroyTexture(quitTxt);
+                    return true;
+                case 1:
+        //            options();
+                    break;
+                case 2:
+         //           help();
+                    break;
+                case 3:
+                    return false;
+            }
+        }
+
+        if(index == 0){
+            title = TTF_RenderText_Solid(Hyperspace, "Asteroids", White);
+            titleTxt = SDL_CreateTextureFromSurface(renderer, title);
+            SDL_QueryTexture(titleTxt, NULL, NULL, &w, &h);
+            titleRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 50, w, h};
+
+            play = TTF_RenderText_Solid(Hyperspace, "XX Play XX", White);
+            playTxt = SDL_CreateTextureFromSurface(renderer, play);
+            SDL_QueryTexture(playTxt, NULL, NULL, &w, &h);
+            playRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2), w, h};
+            
+            options = TTF_RenderText_Solid(Hyperspace, "Options", White);
+            optionsTxt = SDL_CreateTextureFromSurface(renderer, options);
+            SDL_QueryTexture(optionsTxt, NULL, NULL, &w, &h);
+            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            
+            help = TTF_RenderText_Solid(Hyperspace, "Help", White);
+            helpTxt = SDL_CreateTextureFromSurface(renderer, help);
+            SDL_QueryTexture(helpTxt, NULL, NULL, &w, &h);
+            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            
+            quit = TTF_RenderText_Solid(Hyperspace, "Quit", White);
+            quitTxt = SDL_CreateTextureFromSurface(renderer, quit);
+            SDL_QueryTexture(quitTxt, NULL, NULL, &w, &h);
+            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+        } else if (index == 1){
+            title = TTF_RenderText_Solid(Hyperspace, "Asteroids", White);
+            titleTxt = SDL_CreateTextureFromSurface(renderer, title);
+            SDL_QueryTexture(titleTxt, NULL, NULL, &w, &h);
+            titleRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 50, w, h};
+
+            play = TTF_RenderText_Solid(Hyperspace, "Play", White);
+            playTxt = SDL_CreateTextureFromSurface(renderer, play);
+            SDL_QueryTexture(playTxt, NULL, NULL, &w, &h);
+            playRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2), w, h};
+            
+            options = TTF_RenderText_Solid(Hyperspace, "XX Options XX", White);
+            optionsTxt = SDL_CreateTextureFromSurface(renderer, options);
+            SDL_QueryTexture(optionsTxt, NULL, NULL, &w, &h);
+            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            
+            help = TTF_RenderText_Solid(Hyperspace, "Help", White);
+            helpTxt = SDL_CreateTextureFromSurface(renderer, help);
+            SDL_QueryTexture(helpTxt, NULL, NULL, &w, &h);
+            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            
+            quit = TTF_RenderText_Solid(Hyperspace, "Quit", White);
+            quitTxt = SDL_CreateTextureFromSurface(renderer, quit);
+            SDL_QueryTexture(quitTxt, NULL, NULL, &w, &h);
+            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+        } else if (index == 2){
+            title = TTF_RenderText_Solid(Hyperspace, "Asteroids", White);
+            titleTxt = SDL_CreateTextureFromSurface(renderer, title);
+            SDL_QueryTexture(titleTxt, NULL, NULL, &w, &h);
+            titleRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 50, w, h};
+
+            play = TTF_RenderText_Solid(Hyperspace, "Play", White);
+            playTxt = SDL_CreateTextureFromSurface(renderer, play);
+            SDL_QueryTexture(playTxt, NULL, NULL, &w, &h);
+            playRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2), w, h};
+            
+            options = TTF_RenderText_Solid(Hyperspace, "Options", White);
+            optionsTxt = SDL_CreateTextureFromSurface(renderer, options);
+            SDL_QueryTexture(optionsTxt, NULL, NULL, &w, &h);
+            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            
+            help = TTF_RenderText_Solid(Hyperspace, "XX Help XX", White);
+            helpTxt = SDL_CreateTextureFromSurface(renderer, help);
+            SDL_QueryTexture(helpTxt, NULL, NULL, &w, &h);
+            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            
+            quit = TTF_RenderText_Solid(Hyperspace, "Quit", White);
+            quitTxt = SDL_CreateTextureFromSurface(renderer, quit);
+            SDL_QueryTexture(quitTxt, NULL, NULL, &w, &h);
+            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+        } else {
+            title = TTF_RenderText_Solid(Hyperspace, "Asteroids", White);
+            titleTxt = SDL_CreateTextureFromSurface(renderer, title);
+            SDL_QueryTexture(titleTxt, NULL, NULL, &w, &h);
+            titleRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) + 50, w, h};
+
+            play = TTF_RenderText_Solid(Hyperspace, "Play", White);
+            playTxt = SDL_CreateTextureFromSurface(renderer, play);
+            SDL_QueryTexture(playTxt, NULL, NULL, &w, &h);
+            playRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2), w, h};
+            
+            options = TTF_RenderText_Solid(Hyperspace, "Options", White);
+            optionsTxt = SDL_CreateTextureFromSurface(renderer, options);
+            SDL_QueryTexture(optionsTxt, NULL, NULL, &w, &h);
+            optionsRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            
+            help = TTF_RenderText_Solid(Hyperspace, "Help", White);
+            helpTxt = SDL_CreateTextureFromSurface(renderer, help);
+            SDL_QueryTexture(helpTxt, NULL, NULL, &w, &h);
+            helpRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+            
+            quit = TTF_RenderText_Solid(Hyperspace, "XX Quit XX", White);
+            quitTxt = SDL_CreateTextureFromSurface(renderer, quit);
+            SDL_QueryTexture(quitTxt, NULL, NULL, &w, &h);
+            quitRect = {(WIDTH / 2) - (w / 2), (HEIGHT / 2) - h - 5, w, h};
+        }
+
+        SDL_RenderClear(renderer);
+
+        SDL_RenderCopy(renderer, titleTxt, NULL, &titleRect);
+        SDL_RenderCopy(renderer, playTxt, NULL, &playRect);
+        SDL_RenderCopy(renderer, optionsTxt, NULL, &optionsRect);
+        SDL_RenderCopy(renderer, helpTxt, NULL, &helpRect);
+        SDL_RenderCopy(renderer, quitTxt, NULL, &quitRect);
+
+        SDL_RenderPresent(renderer);
+        frameTime = SDL_GetTicks64() - frameStart;
+
+        if(frameDelay > frameTime) SDL_Delay(frameDelay - frameTime);
+	}	
+}
+
 int main(int argc, char * argv[]){
-	if(startGame() != 0){
+	if(startScreen() != 0){
        printf("Error initializing SDL: %s", SDL_GetError()); 
        return -1;
     }
-	
-	gameLoop();
 
-	endGame();
+    while(titleScreen()){
+        startGame();
+        gameLoop();
+        endGame();
+    }
+
+    endScreen();
+
 	return 0;
 }
