@@ -5,6 +5,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_image.h>
 
 #include "spaceObject.h"
 
@@ -15,6 +16,10 @@
 #define SHIP_ACCL 3.0 / FPS 
 #define BULLET_SPEED 240.0 / FPS 
 #define BULLET_DELAY 250
+
+#define BACKGROUND_FLICKER 1000 
+#define BCKGRND1 "src/images/background1.png"
+#define BCKGRND2 "src/images/background2.png"
 
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -32,6 +37,11 @@ bool keysPressed[SDL_NUM_SCANCODES];
 bool running = false;
 
 SDL_Color White = {255, 255, 255, 255};
+
+SDL_Texture *bckgrnd1;
+SDL_Texture *bckgrnd2;
+
+SDL_Rect bckgrndRect = {0, 0, WIDTH, HEIGHT};
 
 TTF_Font* Hyperspace; 
 TTF_Font* HyperspaceScore; 
@@ -222,9 +232,26 @@ void updateGame(){
 	}
 }
 
+void drawBackground(){
+    static uint64_t lastSwap = 0;
+    static bool swap = true;
+
+    if(SDL_GetTicks64() > lastSwap + BACKGROUND_FLICKER){
+        lastSwap = SDL_GetTicks64();
+        swap = !swap;
+    }
+
+    if(swap){
+        SDL_RenderCopy(renderer, bckgrnd1, NULL, &bckgrndRect);
+    } else {
+        SDL_RenderCopy(renderer, bckgrnd2, NULL, &bckgrndRect);
+    }
+}
+
 void render(){
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
+    drawBackground();
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	drawShip();
     showScore();
@@ -275,6 +302,9 @@ int startScreen(){
     window = SDL_CreateWindow("Asteroids", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, 0);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
+    bckgrnd1 = IMG_LoadTexture(renderer, BCKGRND1);
+    bckgrnd2 = IMG_LoadTexture(renderer, BCKGRND2);
+
     TTF_Init();
     Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 24);
     HyperspaceScore = TTF_OpenFont("src/Hyperspace.ttf", 16);
@@ -288,6 +318,9 @@ void endScreen(){
     TTF_CloseFont(Hyperspace);
     TTF_CloseFont(HyperspaceTitle);
     TTF_Quit();
+
+    SDL_DestroyTexture(bckgrnd1);
+    SDL_DestroyTexture(bckgrnd2);
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -445,6 +478,8 @@ bool titleScreen(){
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         SDL_RenderClear(renderer);
+
+        drawBackground();
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderCopy(renderer, titleTxt, NULL, &titleRect);
