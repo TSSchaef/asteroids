@@ -1,7 +1,6 @@
-#include <cmath>
-#include <vector>
 #include <cstring>
 #include <string>
+#include <vector>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
@@ -16,6 +15,9 @@
 #define SHIP_ACCL 3.0 / FPS 
 #define BULLET_SPEED 240.0 / FPS 
 #define BULLET_DELAY 250
+
+#define SHIP "src/images/ship.png"
+#define SHIP_BOOSTING "src/images/ship-boosting.png"
 
 #define BACKGROUND_FLICKER 1000 
 #define BCKGRND1 "src/images/background1.png"
@@ -35,8 +37,12 @@ int score = 0;
 bool keysPressed[SDL_NUM_SCANCODES];
 
 bool running = false;
+bool isBoosting = false;
 
 SDL_Color White = {255, 255, 255, 255};
+
+SDL_Texture *shipTex;
+SDL_Texture *shipBoostingTex;
 
 SDL_Texture *bckgrnd1;
 SDL_Texture *bckgrnd2;
@@ -86,7 +92,14 @@ void drawWireFrame(int x, int y, point_t frame[], int frameSize, float angle){
 }
 
 void drawShip(){
-	drawWireFrame(ship->x, ship->y, shipFrame, 3, ship->angle);
+	//drawWireFrame(ship->x, ship->y, shipFrame, 3, ship->angle);
+    SDL_Rect shipRect = {(int)ship->x - 16, (int)ship->y - 16, 32, 32};
+    float angle = ship->angle * 180 / 3.1415926;
+    if(isBoosting){
+        SDL_RenderCopyEx(renderer, shipBoostingTex, NULL, &shipRect, angle, NULL, SDL_FLIP_NONE);
+    } else {
+        SDL_RenderCopyEx(renderer, shipTex, NULL, &shipRect, angle, NULL, SDL_FLIP_NONE);
+    }
 }
 
 void drawAsteroids(){
@@ -152,6 +165,9 @@ void updateGame(){
     if(keysPressed[SDL_SCANCODE_W] || keysPressed[SDL_SCANCODE_UP]){
         ship->dx += SHIP_ACCL * sin(ship->angle);
         ship->dy -= SHIP_ACCL * cos(ship->angle);
+        isBoosting = true;
+    } else {
+        isBoosting = false;
     }
 
     if(keysPressed[SDL_SCANCODE_A] || keysPressed[SDL_SCANCODE_LEFT]){
@@ -305,6 +321,9 @@ int startScreen(){
     bckgrnd1 = IMG_LoadTexture(renderer, BCKGRND1);
     bckgrnd2 = IMG_LoadTexture(renderer, BCKGRND2);
 
+    shipTex = IMG_LoadTexture(renderer, SHIP);
+    shipBoostingTex = IMG_LoadTexture(renderer, SHIP_BOOSTING);
+
     TTF_Init();
     Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 24);
     HyperspaceScore = TTF_OpenFont("src/Hyperspace.ttf", 16);
@@ -319,6 +338,8 @@ void endScreen(){
     TTF_CloseFont(HyperspaceTitle);
     TTF_Quit();
 
+    SDL_DestroyTexture(shipTex);
+    SDL_DestroyTexture(shipBoostingTex);
     SDL_DestroyTexture(bckgrnd1);
     SDL_DestroyTexture(bckgrnd2);
 
