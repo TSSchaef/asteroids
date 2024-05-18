@@ -106,7 +106,10 @@ void drawAsteroids(){
 	if(asteroids.empty()) return;
 	std::vector<asteroid *>::iterator ai;
 	for(ai = asteroids.begin(); ai != asteroids.end(); ai++){
-		drawWireFrame((*ai)->x, (*ai)->y, (*ai)->frame, ASTEROID_RESOLUTION, (*ai)->angle);
+        SDL_Rect rect = {(int)(*ai)->x - 16, (int)(*ai)->y - 16, 32, 32};
+        float angle = (*ai)->angle * 180 / 3.1415926;
+        SDL_RenderCopyEx(renderer, (*ai)->texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
+       // drawWireFrame((*ai)->x, (*ai)->y, (*ai)->frame, ASTEROID_RESOLUTION, (*ai)->angle);
 	}
 }
 
