@@ -274,7 +274,7 @@ void render(){
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	drawShip();
     showScore();
-    SDL_SetRenderDrawColor(renderer, 101, 67, 33, 255);
+    //SDL_SetRenderDrawColor(renderer, 101, 67, 33, 255);
 	drawAsteroids();
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 	drawBullets();

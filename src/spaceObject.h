@@ -10,7 +10,8 @@ extern SDL_Renderer *renderer;
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 
-#define PICK_IMG(size, rand) "src/images/asteroid-" #size "-" #rand ".png"
+#define ASTEROID321 "src/images/asteroid-32-1.png"
+#define ASTEROID322 "src/images/asteroid-32-2.png"
 
 typedef struct point{
 	int x, y;
@@ -35,8 +36,18 @@ public:
     SDL_Texture *texture;
 	point_t frame[ASTEROID_RESOLUTION];
 	asteroid(float x, float y, float dx, float dy, float angle, int size) : spaceObject(x, y, dx, dy, angle){
-
-        texture = IMG_LoadTexture(renderer, PICK_IMG(size, (rand() % 2) + 1));
+        
+        int rnd = (rand() % 2) + 1;
+        switch(rnd){
+            case 1:
+                texture = IMG_LoadTexture(renderer, ASTEROID321);
+                break;
+            case 2:
+                texture = IMG_LoadTexture(renderer, ASTEROID322);
+                break;
+            default:
+                texture = IMG_LoadTexture(renderer, ASTEROID321);
+        }
 
 		this->size = size;
 
