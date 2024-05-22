@@ -16,6 +16,9 @@
 #define BULLET_SPEED 240.0 / FPS 
 #define BULLET_DELAY 250
 
+#define MIN_ASTEROID_SIZE 32
+#define MAX_ASTEROID_SIZE 128 
+
 #define SHIP "src/images/ship.png"
 #define SHIP_BOOSTING "src/images/ship-boosting.png"
 
@@ -56,7 +59,14 @@ TTF_Font* HyperspaceTitle;
 void placeAsteroids(){
 	int i;
 	for(i = 0; i < numSpawnAsteroids; i++){
-		asteroids.push_back(new asteroid(ship->x + (-1 * (rand() % 2 + 1)) * ((rand() % 12) + 30), ship->y + (-1 * (rand() % 2 + 1)) * (17), (-1 * (rand() % 2 + 1)) * 0.2, (-1 * (rand() % 2 + 1)) * 0.2, 0.05, 32));
+        int x, y;
+        while(true){
+            x = rand() % WIDTH;
+            y = rand() % HEIGHT;
+
+			if(MAX_ASTEROID_SIZE * MAX_ASTEROID_SIZE < ((ship->x - x) * (ship->x - x)) + ((ship->y - y) * (ship->y - y))) break;
+        }
+		asteroids.push_back(new asteroid(x, y, static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, 0.05, MAX_ASTEROID_SIZE));
 	}
 	numSpawnAsteroids++;
 }
@@ -106,7 +116,8 @@ void drawAsteroids(){
 	if(asteroids.empty()) return;
 	std::vector<asteroid *>::iterator ai;
 	for(ai = asteroids.begin(); ai != asteroids.end(); ai++){
-        SDL_Rect rect = {(int)(*ai)->x - 16, (int)(*ai)->y - 16, 32, 32};
+        int size = (*ai)->size;
+        SDL_Rect rect = {(int)(*ai)->x - (size / 2), (int)(*ai)->y - (size / 2), size, size};
         float angle = (*ai)->angle * 180 / 3.1415926;
         SDL_RenderCopyEx(renderer, (*ai)->texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
        // drawWireFrame((*ai)->x, (*ai)->y, (*ai)->frame, ASTEROID_RESOLUTION, (*ai)->angle);
@@ -216,6 +227,8 @@ void updateGame(){
 			if((*ai)->x < 0) (*ai)->x += WIDTH;
 			if((*ai)->y > HEIGHT) (*ai)->y -= HEIGHT;
 			if((*ai)->y < 0) (*ai)->y += HEIGHT;
+
+            (*ai)->angle += ((*ai)->angle < 0) ? -0.01 : 0.01;
 			
 			//collided with player
 			if((*ai)->size * (*ai)->size >= ((ship->x - (*ai)->x) * (ship->x - (*ai)->x)) + ((ship->y - (*ai)->y) * (ship->y - (*ai)->y))){
@@ -230,9 +243,9 @@ void updateGame(){
 					si--;
 
                     score += (*ai)->size * 6.25;
-					if((*ai)->size > 8){
-						tempAst.push_back(new asteroid((*ai)->x, (*ai)->y, (*ai)->dx + static_cast<double> (rand() / static_cast<double> (RAND_MAX)) - 0.5, (*ai)->dy + static_cast<double> (rand() / static_cast<double> (RAND_MAX)) - 0.5, -0.05, (*ai)->size / 2));
-						tempAst.push_back(new asteroid((*ai)->x, (*ai)->y, (*ai)->dx + static_cast<double> (rand() / static_cast<double> (RAND_MAX)) - 0.5, (*ai)->dy + static_cast<double> (rand() / static_cast<double> (RAND_MAX)) - 0.5, 0.1, (*ai)->size / 2));
+					if((*ai)->size > MIN_ASTEROID_SIZE){
+						tempAst.push_back(new asteroid((*ai)->x, (*ai)->y, (*ai)->dx + static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, (*ai)->dy + static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, -0.05, (*ai)->size / 2));
+						tempAst.push_back(new asteroid((*ai)->x, (*ai)->y, (*ai)->dx + static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, (*ai)->dy + static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, 0.1, (*ai)->size / 2));
 					}
 					delete (*ai);
 					asteroids.erase(ai);
