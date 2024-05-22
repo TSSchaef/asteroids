@@ -1,7 +1,7 @@
 #ifndef SPACE_OBJECT_H
 #define SPACE_OBJECT_H
 
-#define ASTEROID_RESOLUTION 16
+//#define ASTEROID_RESOLUTION 16
 
 extern SDL_Renderer *renderer;
 
@@ -10,8 +10,8 @@ extern SDL_Renderer *renderer;
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 
-#define ASTEROID321 "src/images/asteroid-32-1.png"
-#define ASTEROID322 "src/images/asteroid-32-2.png"
+#define ASTEROID1 "src/images/asteroid-32-1.png"
+#define ASTEROID2 "src/images/asteroid-32-2.png"
 
 typedef struct point{
 	int x, y;
@@ -34,28 +34,28 @@ class asteroid : public spaceObject{
 public:
 	int size;
     SDL_Texture *texture;
-	point_t frame[ASTEROID_RESOLUTION];
+	//point_t frame[ASTEROID_RESOLUTION];
 	asteroid(float x, float y, float dx, float dy, float angle, int size) : spaceObject(x, y, dx, dy, angle){
         
         int rnd = (rand() % 2) + 1;
         switch(rnd){
             case 1:
-                texture = IMG_LoadTexture(renderer, ASTEROID321);
+                texture = IMG_LoadTexture(renderer, ASTEROID1);
                 break;
             case 2:
-                texture = IMG_LoadTexture(renderer, ASTEROID322);
+                texture = IMG_LoadTexture(renderer, ASTEROID2);
                 break;
             default:
-                texture = IMG_LoadTexture(renderer, ASTEROID321);
+                texture = IMG_LoadTexture(renderer, ASTEROID1);
         }
 
 		this->size = size;
 
-		int i;
+	/*	int i;
 		for(i = 0; i < ASTEROID_RESOLUTION; i++){
 			frame[i].x = size * cos(i * (3.14159 / (ASTEROID_RESOLUTION / 2))) + (rand() % 3 - 1);
 			frame[i].y = size * sin(i * (3.14159 / (ASTEROID_RESOLUTION / 2))) + (rand() % 3 - 1);
-		}
+		}*/
 	}
 	~asteroid(){
         SDL_DestroyTexture(texture);

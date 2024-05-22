@@ -16,6 +16,7 @@
 #define BULLET_SPEED 240.0 / FPS 
 #define BULLET_DELAY 250
 
+#define SHIP_SIZE 64
 #define MIN_ASTEROID_SIZE 32
 #define MAX_ASTEROID_SIZE 128 
 
@@ -33,7 +34,7 @@ std::vector<asteroid *> asteroids;
 std::vector<spaceObject *> bullets;
 spaceObject *ship;
 
-point_t shipFrame[3];
+//point_t shipFrame[3];
 int numSpawnAsteroids = 2;
 int score = 0;
 
@@ -86,7 +87,7 @@ void endGame(){
     running = false;
 }
 
-void drawWireFrame(int x, int y, point_t frame[], int frameSize, float angle){
+/*void drawWireFrame(int x, int y, point_t frame[], int frameSize, float angle){
 	point_t rotatedFrame[frameSize];
 	
 	int i;
@@ -99,11 +100,11 @@ void drawWireFrame(int x, int y, point_t frame[], int frameSize, float angle){
 	}
 
 	SDL_RenderDrawLine(renderer, x + rotatedFrame[0].x, y + rotatedFrame[0].y, x + rotatedFrame[frameSize - 1].x, y + rotatedFrame[frameSize - 1].y);
-}
+}*/
 
 void drawShip(){
 	//drawWireFrame(ship->x, ship->y, shipFrame, 3, ship->angle);
-    SDL_Rect shipRect = {(int)ship->x - 16, (int)ship->y - 16, 32, 32};
+    SDL_Rect shipRect = {(int)ship->x - (SHIP_SIZE / 2), (int)ship->y - (SHIP_SIZE / 2), SHIP_SIZE, SHIP_SIZE};
     float angle = ship->angle * 180 / 3.1415926;
     if(isBoosting){
         SDL_RenderCopyEx(renderer, shipBoostingTex, NULL, &shipRect, angle, NULL, SDL_FLIP_NONE);
@@ -315,12 +316,12 @@ void gameLoop(){
 void startGame(){
 	ship = new spaceObject(WIDTH / 2, HEIGHT / 2, 0, 0, 0);
 	placeAsteroids();
-	shipFrame[0].x = 0;
+	/*shipFrame[0].x = 0;
 	shipFrame[0].y = -10;
 	shipFrame[1].x = 4;
 	shipFrame[1].y = 4;
 	shipFrame[2].x = -4;
-	shipFrame[2].y = 4;
+	shipFrame[2].y = 4;*/
     score = 0;
     numSpawnAsteroids = 2;
     running = true;
