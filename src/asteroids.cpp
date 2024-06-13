@@ -13,15 +13,22 @@
 #define HEIGHT 1000
 #define SHIP_SPIN 8.0 / FPS 
 #define SHIP_ACCL 3.0 / FPS 
-#define BULLET_SPEED 240.0 / FPS 
+#define BULLET_SPEED 320.0 / FPS 
+#define ALIEN_SPEED 180.0 / FPS
+#define ASTEROID_SPEED 120.0 / FPS
 #define BULLET_DELAY 250
+#define ALIEN_DELAY 30000
+#define ALIEN_VALUE 3000
 
+#define ALIEN_SIZE 48
 #define SHIP_SIZE 64
 #define MIN_ASTEROID_SIZE 32
 #define MAX_ASTEROID_SIZE 128 
 
 #define SHIP "src/images/ship.png"
 #define SHIP_BOOSTING "src/images/ship-boosting.png"
+
+#define ALIEN "src/images/alien.png"
 
 #define BACKGROUND_FLICKER 1000 
 #define BCKGRND1 "src/images/background1.png"
@@ -33,6 +40,7 @@ SDL_Renderer *renderer;
 std::vector<asteroid *> asteroids;
 std::vector<spaceObject *> bullets;
 spaceObject *ship;
+spaceObject *alien;
 
 //point_t shipFrame[3];
 int numSpawnAsteroids = 2;
@@ -47,6 +55,8 @@ SDL_Color White = {255, 255, 255, 255};
 
 SDL_Texture *shipTex;
 SDL_Texture *shipBoostingTex;
+
+SDL_Texture *alienTex;
 
 SDL_Texture *bckgrnd1;
 SDL_Texture *bckgrnd2;
@@ -67,7 +77,7 @@ void placeAsteroids(){
 
 			if(MAX_ASTEROID_SIZE * MAX_ASTEROID_SIZE < ((ship->x - x) * (ship->x - x)) + ((ship->y - y) * (ship->y - y))) break;
         }
-		asteroids.push_back(new asteroid(x, y, static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, 0.05, MAX_ASTEROID_SIZE));
+		asteroids.push_back(new asteroid(x, y, ASTEROID_SPEED * (static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1), ASTEROID_SPEED * (static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1), 0.05, MAX_ASTEROID_SIZE));
 	}
 	numSpawnAsteroids++;
 }
@@ -82,6 +92,10 @@ void endGame(){
 	for(; bi != bullets.end(); bi++){
 		delete *bi;
 	}
+    if(alien != NULL) {
+        delete alien;
+        alien = NULL;
+    }
     asteroids.clear();
     bullets.clear();
     running = false;
@@ -111,6 +125,12 @@ void drawShip(){
     } else {
         SDL_RenderCopyEx(renderer, shipTex, NULL, &shipRect, angle, NULL, SDL_FLIP_NONE);
     }
+}
+
+void drawAlien(){
+    if(alien == NULL) return;
+    SDL_Rect rect = {(int)alien->x - (ALIEN_SIZE / 2), (int)alien->y - (ALIEN_SIZE / 2), ALIEN_SIZE, ALIEN_SIZE};
+    SDL_RenderCopyEx(renderer, alienTex, NULL, &rect, 0, NULL, SDL_FLIP_NONE);
 }
 
 void drawAsteroids(){
@@ -176,6 +196,7 @@ int userInput(){
 
 void updateGame(){
     static uint64_t lastBulletFired;
+    static uint64_t lastAlien = SDL_GetTicks64();
 	
     if(keysPressed[SDL_SCANCODE_W] || keysPressed[SDL_SCANCODE_UP]){
         ship->dx += SHIP_ACCL * sin(ship->angle);
@@ -198,6 +219,32 @@ void updateGame(){
         lastBulletFired = SDL_GetTicks64();
     }
 
+
+    if(alien == NULL && SDL_GetTicks64() > lastAlien + ALIEN_DELAY && rand() % 100 == 0){
+        if(rand() % 2 == 1){
+            alien = new spaceObject(0, (rand() % (HEIGHT / 2)) +  (HEIGHT / 4), ALIEN_SPEED, 0, 0); 
+        } else {
+            alien = new spaceObject(WIDTH, (rand() % (HEIGHT / 2)) +  (HEIGHT / 4), -ALIEN_SPEED, 0, 0); 
+        }
+       lastAlien = SDL_GetTicks64();
+    }
+
+    if(alien != NULL){
+        alien->x += alien->dx;
+        alien->y += alien->dy;
+        
+        if(alien->x > WIDTH || alien->x < 0 || alien->y > HEIGHT || alien->y < 0){
+            delete alien;
+            alien = NULL;
+        }
+
+        if(alien != NULL &&  ALIEN_SIZE * ALIEN_SIZE >= ((ship->x - alien->x) * (ship->x - alien->x)) + ((ship->y - alien->y) * (ship->y - alien->y))){
+            delete alien;
+            alien = NULL;
+            running = false;
+        }
+    }
+
 	ship->x += ship->dx;
 	ship->y += ship->dy;
 
@@ -217,6 +264,20 @@ void updateGame(){
 			si--;
 		}
 	}
+        
+    if(alien != NULL){
+        for(si = bullets.begin(); si != bullets.end(); si++){
+            if(ALIEN_SIZE * ALIEN_SIZE >= (((*si)->x - alien->x) * ((*si)->x - alien->x)) + (((*si)->y - alien->y) * ((*si)->y - alien->y))){
+                //remove bullet from vector
+                delete (*si);
+                bullets.erase(si);
+                delete alien;
+                alien = NULL;
+                score += ALIEN_VALUE;
+                break;
+            }
+        }
+    }
 	
 	if(!asteroids.empty()){
 		std::vector<asteroid *>::iterator ai;
@@ -245,8 +306,8 @@ void updateGame(){
 
                     score += (*ai)->size * 6.25;
 					if((*ai)->size > MIN_ASTEROID_SIZE){
-						tempAst.push_back(new asteroid((*ai)->x, (*ai)->y, (*ai)->dx + static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, (*ai)->dy + static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, -0.05, (*ai)->size / 2));
-						tempAst.push_back(new asteroid((*ai)->x, (*ai)->y, (*ai)->dx + static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, (*ai)->dy + static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1, 0.1, (*ai)->size / 2));
+						tempAst.push_back(new asteroid((*ai)->x, (*ai)->y, (*ai)->dx + ASTEROID_SPEED * (static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1), (*ai)->dy + ASTEROID_SPEED * (static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1), -0.05, (*ai)->size / 2));
+						tempAst.push_back(new asteroid((*ai)->x, (*ai)->y, (*ai)->dx + ASTEROID_SPEED * (static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1), (*ai)->dy + ASTEROID_SPEED * (static_cast<double> (rand() / static_cast<double> (0.5 * RAND_MAX)) - 1), -0.05, (*ai)->size / 2));
 					}
 					delete (*ai);
 					asteroids.erase(ai);
@@ -290,6 +351,7 @@ void render(){
     showScore();
     //SDL_SetRenderDrawColor(renderer, 101, 67, 33, 255);
 	drawAsteroids();
+    drawAlien();
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 	drawBullets();
     SDL_RenderPresent(renderer);
@@ -316,6 +378,7 @@ void gameLoop(){
 void startGame(){
 	ship = new spaceObject(WIDTH / 2, HEIGHT / 2, 0, 0, 0);
 	placeAsteroids();
+    alien = NULL;
 	/*shipFrame[0].x = 0;
 	shipFrame[0].y = -10;
 	shipFrame[1].x = 4;
@@ -341,6 +404,8 @@ int startScreen(){
     shipTex = IMG_LoadTexture(renderer, SHIP);
     shipBoostingTex = IMG_LoadTexture(renderer, SHIP_BOOSTING);
 
+    alienTex = IMG_LoadTexture(renderer, ALIEN);
+
     TTF_Init();
     Hyperspace = TTF_OpenFont("src/Hyperspace.ttf", 24);
     HyperspaceScore = TTF_OpenFont("src/Hyperspace.ttf", 16);
@@ -357,6 +422,7 @@ void endScreen(){
 
     SDL_DestroyTexture(shipTex);
     SDL_DestroyTexture(shipBoostingTex);
+    SDL_DestroyTexture(alienTex);
     SDL_DestroyTexture(bckgrnd1);
     SDL_DestroyTexture(bckgrnd2);
 
@@ -412,7 +478,7 @@ bool titleScreen(){
             justMoved = false;
         }
 
-        if(keysPressed[SDL_SCANCODE_SPACE] || keysPressed[SDL_SCANCODE_RETURN]){
+        if(keysPressed[SDL_SCANCODE_RETURN]){
             switch(index){
                 case 0:
                     return true;
